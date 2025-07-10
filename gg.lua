@@ -7,7 +7,6 @@ local SaveManager = {} do
 	SaveManager.Ignore = {}
 	SaveManager.AutoSaveEnabled = true
 	SaveManager.AutoSaveInterval = 1 -- seconds
-	SaveManager.AutoSaveConnection = nil
 	SaveManager.PlayerName = Players.LocalPlayer.Name
 	SaveManager.AutoSaveConfigName = "AutoSave_" .. SaveManager.PlayerName
 	
@@ -136,13 +135,9 @@ local SaveManager = {} do
 	end
 
 	function SaveManager:StartAutoSave()
-		if self.AutoSaveConnection then
-			self.AutoSaveConnection:Disconnect()
-		end
-		
 		if not self.AutoSaveEnabled then return end
 		
-		self.AutoSaveConnection = task.spawn(function()
+		task.spawn(function()
 			while self.AutoSaveEnabled do
 				wait(self.AutoSaveInterval)
 				if self.AutoSaveEnabled then
@@ -162,10 +157,6 @@ local SaveManager = {} do
 
 	function SaveManager:StopAutoSave()
 		self.AutoSaveEnabled = false
-		if self.AutoSaveConnection then
-			self.AutoSaveConnection:Disconnect()
-			self.AutoSaveConnection = nil
-		end
 	end
 
 	function SaveManager:LoadAutoSaveConfig()
