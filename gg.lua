@@ -6,7 +6,7 @@ local SaveManager = {} do
 	SaveManager.Folder = "FluentSettings"
 	SaveManager.Ignore = {}
 	SaveManager.AutoSaveEnabled = true
-	SaveManager.AutoSaveInterval = 1 -- seconds
+	SaveManager.AutoSaveInterval = 1
 	SaveManager.PlayerName = Players.LocalPlayer.Name
 	SaveManager.AutoSaveConfigName = "AutoSave_" .. SaveManager.PlayerName
 	
@@ -254,8 +254,6 @@ local SaveManager = {} do
 		assert(self.Library, "Must set SaveManager.Library")
 
 		local section = tab:AddSection("Configuration")
-
-		-- Auto Save Toggle
 		section:AddToggle("SaveManager_AutoSave", {
 			Title = "Auto Save Config",
 			Description = "Automatically saves config every " .. self.AutoSaveInterval .. " second(s)",
