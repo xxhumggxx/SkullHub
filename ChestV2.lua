@@ -1,7 +1,3 @@
 task.spawn(function()
     loadstring(game:HttpGet("https://loader.pandadevelopment.net/virtual/file/8327fc0ffb922625"))()
 end)
-wait('3')
-task.spawn(function()
-    loadstring(game:HttpGet("https://pandadevelopment.net/virtual/file/27bbc5c7202b7722"))()
-end)
