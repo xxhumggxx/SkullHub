@@ -5,11 +5,11 @@ local SaveManager = {} do
 	SaveManager.Folder = "FluentSettings"
 	SaveManager.Ignore = {}
 	SaveManager.AutoSaveEnabled = true
-	SaveManager.AutoSaveInterval = 1 -- seconds
+	SaveManager.AutoSaveInterval = 1
 	SaveManager.AutoSaveConnection = nil
 	SaveManager.CurrentConfig = nil
-	SaveManager.UsePlayerName = true -- New: Use player name in config files
-	SaveManager.PlayerName = Players.LocalPlayer.Name -- Get current player name
+	SaveManager.UsePlayerName = true
+	SaveManager.PlayerName = Players.LocalPlayer.Name
 	SaveManager.Parser = {
 		Toggle = {
 			Save = function(idx, object) 
@@ -73,7 +73,6 @@ local SaveManager = {} do
 		},
 	}
 
-	-- New: Get config file name with player name
 	function SaveManager:GetConfigFileName(name)
 		if self.UsePlayerName then
 			return self.PlayerName .. "_" .. name
@@ -82,7 +81,6 @@ local SaveManager = {} do
 		end
 	end
 
-	-- New: Get config display name (remove player prefix)
 	function SaveManager:GetConfigDisplayName(fileName)
 		if self.UsePlayerName then
 			local prefix = self.PlayerName .. "_"
@@ -104,7 +102,6 @@ local SaveManager = {} do
 		self:BuildFolderTree()
 	end
 
-	-- New: Enable/disable player name usage
 	function SaveManager:SetUsePlayerName(enabled)
 		self.UsePlayerName = enabled
 	end
@@ -114,10 +111,13 @@ local SaveManager = {} do
 		self.CurrentConfig = configName or "autosave"
 		self.AutoSaveInterval = interval or 30
 		
+		-- Properly disconnect existing connection
 		if self.AutoSaveConnection then
-			self.AutoSaveConnection:Disconnect()
+			task.cancel(self.AutoSaveConnection)
+			self.AutoSaveConnection = nil
 		end
 		
+		-- Create new auto-save task
 		self.AutoSaveConnection = task.spawn(function()
 			while self.AutoSaveEnabled do
 				task.wait(self.AutoSaveInterval)
@@ -139,7 +139,7 @@ local SaveManager = {} do
 	function SaveManager:DisableAutoSave()
 		self.AutoSaveEnabled = false
 		if self.AutoSaveConnection then
-			self.AutoSaveConnection:Disconnect()
+			task.cancel(self.AutoSaveConnection)
 			self.AutoSaveConnection = nil
 		end
 		
@@ -152,8 +152,8 @@ local SaveManager = {} do
 			enabled = self.AutoSaveEnabled,
 			config = self.CurrentConfig,
 			interval = self.AutoSaveInterval,
-			usePlayerName = self.UsePlayerName, -- New: Save player name setting
-			playerName = self.PlayerName -- New: Save current player name
+			usePlayerName = self.UsePlayerName,
+			playerName = self.PlayerName
 		}
 		
 		local success, encoded = pcall(httpService.JSONEncode, httpService, autoSaveData)
@@ -167,7 +167,6 @@ local SaveManager = {} do
 		local fileName = self:GetConfigFileName("autosave_settings")
 		local file = self.Folder .. "/settings/" .. fileName .. ".json"
 		
-		-- Try to load with player name first, then fallback to old format
 		if not isfile(file) then
 			file = self.Folder .. "/settings/autosave_settings.json"
 		end
@@ -179,7 +178,6 @@ local SaveManager = {} do
 				self.CurrentConfig = decoded.config or "autosave"
 				self.AutoSaveInterval = decoded.interval or 1
 				
-				-- New: Load player name settings
 				if decoded.usePlayerName ~= nil then
 					self.UsePlayerName = decoded.usePlayerName
 				end
@@ -192,7 +190,6 @@ local SaveManager = {} do
 				end
 			end
 		else
-			-- Default values if no settings file exists
 			self.AutoSaveEnabled = true
 			self.CurrentConfig = "autosave"
 			self.AutoSaveInterval = 1
@@ -210,7 +207,7 @@ local SaveManager = {} do
 
 		local data = {
 			objects = {},
-			metadata = { -- New: Add metadata
+			metadata = {
 				playerName = self.PlayerName,
 				createdAt = os.date("%Y-%m-%d %H:%M:%S"),
 				configName = name
@@ -229,7 +226,6 @@ local SaveManager = {} do
 			return false, "failed to encode data"
 		end
 
-		-- New: Create backup of existing config
 		if isfile(fullPath) then
 			local backupPath = self.Folder .. "/settings/backups/" .. fileName .. "_backup_" .. os.date("%Y%m%d_%H%M%S") .. ".json"
 			local success, content = pcall(readfile, fullPath)
@@ -250,7 +246,6 @@ local SaveManager = {} do
 		local fileName = self:GetConfigFileName(name)
 		local file = self.Folder .. "/settings/" .. fileName .. ".json"
 		
-		-- Try to load with player name first, then fallback to old format
 		if not isfile(file) then
 			file = self.Folder .. "/settings/" .. name .. ".json"
 		end
@@ -264,7 +259,6 @@ local SaveManager = {} do
 			return false, "failed to decode config file"
 		end
 
-		-- New: Check if config belongs to current player
 		if decoded.metadata and decoded.metadata.playerName then
 			if decoded.metadata.playerName ~= self.PlayerName and self.UsePlayerName then
 				local choice = self.Library:Notify({
@@ -276,7 +270,7 @@ local SaveManager = {} do
 						Confirm = {
 							Name = "Load",
 							Callback = function()
-								-- Continue loading
+								
 							end
 						},
 						Cancel = {
@@ -311,7 +305,7 @@ local SaveManager = {} do
 		local paths = {
 			self.Folder,
 			self.Folder .. "/settings",
-			self.Folder .. "/settings/backups" -- New: Backup folder
+			self.Folder .. "/settings/backups"
 		}
 
 		for i = 1, #paths do
@@ -354,7 +348,6 @@ local SaveManager = {} do
 		return out
 	end
 
-	-- New: Get all configs (including other players)
 	function SaveManager:GetAllConfigs()
 		local list = listfiles(self.Folder .. "/settings")
 		local out = {}
@@ -383,7 +376,6 @@ local SaveManager = {} do
 		return out
 	end
 
-	-- New: Delete config
 	function SaveManager:DeleteConfig(name)
 		if not name then
 			return false, "no config name provided"
@@ -396,7 +388,6 @@ local SaveManager = {} do
 			return false, "config file not found"
 		end
 		
-		-- Create backup before deletion
 		local backupPath = self.Folder .. "/settings/backups/" .. fileName .. "_deleted_" .. os.date("%Y%m%d_%H%M%S") .. ".json"
 		local success, content = pcall(readfile, file)
 		if success then
@@ -416,7 +407,6 @@ local SaveManager = {} do
 		local fileName = self:GetConfigFileName("autoload")
 		local file = self.Folder .. "/settings/" .. fileName .. ".txt"
 		
-		-- Try to load with player name first, then fallback to old format
 		if not isfile(file) then
 			file = self.Folder .. "/settings/autoload.txt"
 		end
@@ -451,7 +441,6 @@ local SaveManager = {} do
 		section:AddInput("SaveManager_ConfigName", { Title = "Config name" })
 		section:AddDropdown("SaveManager_ConfigList", { Title = "Config list", Values = self:RefreshConfigList(), AllowNull = true })
 
-		-- New: Player name toggle
 		section:AddToggle("SaveManager_UsePlayerName", {
 			Title = "Use Player Name",
 			Description = "Include player name in config files",
@@ -459,7 +448,6 @@ local SaveManager = {} do
 			Callback = function(value)
 				self.UsePlayerName = value
 				self:SaveAutoSaveSettings()
-				-- Refresh config list
 				SaveManager.Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
 			end
 		})
@@ -601,7 +589,6 @@ local SaveManager = {} do
 			end
 		})
 
-		-- New: Delete config button
 		section:AddButton({
 			Title = "Delete config",
 			Callback = function()
@@ -663,7 +650,6 @@ local SaveManager = {} do
 			end
 		})
 
-		-- Check for existing autoload config
 		local fileName = self:GetConfigFileName("autoload")
 		local file = self.Folder .. "/settings/" .. fileName .. ".txt"
 		if not isfile(file) then
