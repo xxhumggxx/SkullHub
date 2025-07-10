@@ -3,8 +3,8 @@ local httpService = game:GetService("HttpService")
 local SaveManager = {} do
 	SaveManager.Folder = "FluentSettings"
 	SaveManager.Ignore = {}
-	SaveManager.AutoSaveEnabled = false
-	SaveManager.AutoSaveInterval = 30 -- seconds
+	SaveManager.AutoSaveEnabled = true
+	SaveManager.AutoSaveInterval = 1 -- seconds
 	SaveManager.AutoSaveConnection = nil
 	SaveManager.CurrentConfig = nil
 	SaveManager.Parser = {
@@ -105,6 +105,7 @@ local SaveManager = {} do
 			end
 		end)
 		
+		-- Save auto save settings
 		self:SaveAutoSaveSettings()
 	end
 
@@ -137,10 +138,20 @@ local SaveManager = {} do
 		if isfile(file) then
 			local success, decoded = pcall(httpService.JSONDecode, httpService, readfile(file))
 			if success and decoded then
-				if decoded.enabled then
-					self:EnableAutoSave(decoded.config, decoded.interval)
+				self.AutoSaveEnabled = decoded.enabled or true
+				self.CurrentConfig = decoded.config or "autosave"
+				self.AutoSaveInterval = decoded.interval or 1
+				
+				if self.AutoSaveEnabled then
+					self:EnableAutoSave(self.CurrentConfig, self.AutoSaveInterval)
 				end
 			end
+		else
+			-- Default values if no settings file exists
+			self.AutoSaveEnabled = true
+			self.CurrentConfig = "autosave"
+			self.AutoSaveInterval = 1
+			self:EnableAutoSave(self.CurrentConfig, self.AutoSaveInterval)
 		end
 	end
 
@@ -275,6 +286,7 @@ local SaveManager = {} do
 		section:AddInput("SaveManager_ConfigName",    { Title = "Config name" })
 		section:AddDropdown("SaveManager_ConfigList", { Title = "Config list", Values = self:RefreshConfigList(), AllowNull = true })
 
+		-- Auto Save Toggle
 		section:AddToggle("SaveManager_AutoSave", { 
 			Title = "Auto Save", 
 			Description = "Automatically save config every " .. self.AutoSaveInterval .. " seconds",
@@ -282,7 +294,7 @@ local SaveManager = {} do
 			Callback = function(value)
 				if value then
 					local configName = SaveManager.Options.SaveManager_ConfigList.Value or "autosave"
-					self:EnableAutoSave(configName)
+					self:EnableAutoSave(configName, self.AutoSaveInterval)
 					self.Library:Notify({
 						Title = "Interface",
 						Content = "Config loader",
@@ -301,11 +313,12 @@ local SaveManager = {} do
 			end
 		})
 
+		-- Auto Save Interval Slider
 		section:AddSlider("SaveManager_AutoSaveInterval", {
 			Title = "Auto Save Interval",
 			Description = "Time between auto saves (seconds)",
 			Default = self.AutoSaveInterval,
-			Min = 10,
+			Min = 1,
 			Max = 300,
 			Rounding = 0,
 			Callback = function(value)
@@ -316,7 +329,10 @@ local SaveManager = {} do
 					self:DisableAutoSave()
 					self:EnableAutoSave(currentConfig, value)
 				end
-				SaveManager.Options.SaveManager_AutoSave:SetDesc("Automatically save config every " .. value .. " seconds")
+				-- Update toggle description
+				if SaveManager.Options.SaveManager_AutoSave then
+					SaveManager.Options.SaveManager_AutoSave:SetDesc("Automatically save config every " .. value .. " seconds")
+				end
 			end
 		})
 
@@ -369,6 +385,7 @@ local SaveManager = {} do
 				})
 			end
 
+			-- Update current config for auto save
 			if self.AutoSaveEnabled then
 				self.CurrentConfig = name
 				self:SaveAutoSaveSettings()
