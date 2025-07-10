@@ -87,10 +87,13 @@ local SaveManager = {} do
 		self.CurrentConfig = configName or "autosave"
 		self.AutoSaveInterval = interval or 30
 		
+		-- Cancel existing auto save thread if it exists
 		if self.AutoSaveConnection then
-			self.AutoSaveConnection:Disconnect()
+			task.cancel(self.AutoSaveConnection)
+			self.AutoSaveConnection = nil
 		end
 		
+		-- Create new auto save thread
 		self.AutoSaveConnection = task.spawn(function()
 			while self.AutoSaveEnabled do
 				task.wait(self.AutoSaveInterval)
@@ -112,7 +115,7 @@ local SaveManager = {} do
 	function SaveManager:DisableAutoSave()
 		self.AutoSaveEnabled = false
 		if self.AutoSaveConnection then
-			self.AutoSaveConnection:Disconnect()
+			task.cancel(self.AutoSaveConnection)
 			self.AutoSaveConnection = nil
 		end
 		
