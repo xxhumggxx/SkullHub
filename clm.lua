@@ -138,6 +138,14 @@ local SaveManager = {} do
 		local success, decoded = pcall(httpService.JSONDecode, httpService, readfile(file))
 		if not success then return false, "decode error" end
 
+		if decoded.saveMode then
+			self.SaveMode = decoded.saveMode
+			self:UpdateAutoSaveConfigName()
+			if self.Options and self.Options.SaveManager_SaveMode then
+				self.Options.SaveManager_SaveMode:SetValue(decoded.saveMode)
+			end
+		end
+
 		for _, option in next, decoded.objects do
 			if self.Parser[option.type] then
 				task.spawn(function() self.Parser[option.type].Load(option.idx, option) end)
@@ -156,12 +164,11 @@ local SaveManager = {} do
 				if self.AutoSaveEnabled then
 					local success, err = self:Save(self.AutoSaveConfigName)
 					if not success and self.Library then
-						-- Optionally notify on auto save failure (comment out if too spammy)
-						-- self.Library:Notify({
-						-- 	Title = "Auto Save",
-						-- 	Content = "Failed to auto save: " .. err,
-						-- 	Duration = 3
-						-- })
+						self.Library:Notify({
+							Title = "Auto Save",
+							Content = "Failed to auto save: " .. err,
+							Duration = 3
+						})
 					end
 				end
 			end
@@ -421,7 +428,7 @@ local SaveManager = {} do
 			AutoloadButton:SetDesc("Current autoload config: " .. name)
 		end
 
-		SaveManager:SetIgnoreIndexes({ "SaveManager_ConfigList", "SaveManager_ConfigName", "SaveManager_AutoSave", "SaveManager_SaveMode" })
+		SaveManager:SetIgnoreIndexes({ "SaveManager_ConfigList", "SaveManager_ConfigName", "SaveManager_AutoSave" })
 	end
 
 	SaveManager:BuildFolderTree()
